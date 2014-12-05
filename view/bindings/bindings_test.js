@@ -7,7 +7,8 @@ steal("can/view/bindings", "can/map", "can/test", "can/view/stache", function (s
 	});
 
 	test("can-event handlers", function () {
-		expect(4);
+		expect(12);
+		var ta = document.getElementById("qunit-test-area");
 		var template = can.view.mustache("<div>" +
 			"{{#each foodTypes}}" +
 			"<p can-click='doSomething'>{{content}}</p>" +
@@ -24,24 +25,49 @@ steal("can/view/bindings", "can/map", "can/test", "can/view/stache", function (s
 			title: "Sweets",
 			content: "ice cream, candy"
 		}]);
-		var doSomething = function (foodType, el, ev) {
+
+		function doSomething(foodType, el, ev) {
 			ok(true, "doSomething called");
 			equal(el[0].nodeName.toLowerCase(), "p", "this is the element");
 			equal(ev.type, "click", "1st argument is the event");
 			equal(foodType, foodTypes[0], "2nd argument is the 1st foodType");
 
-		};
+		}
 
 		var frag = template({
 			foodTypes: foodTypes,
 			doSomething: doSomething
 		});
 
-		var ta = document.getElementById("qunit-test-area");
 		ta.appendChild(frag);
 		var p0 = ta.getElementsByTagName("p")[0];
 		can.trigger(p0, "click");
 
+
+		template = can.view.mustache("<div>" +
+			"{{#each foodTypes}}" +
+			"<p class='with-args' can-click='{withArgs @event @element title content=content}'>" +
+			"{{content}}</p>" +
+			"{{/each}}" +
+			"</div>");
+		function withArgs(ev1, el1, title, hash, foodType, el2, ev2) {
+			ok(true, "withArgs called");
+			equal(ev1, ev2, "@event accesses event object");
+			equal(el1[0], el2[0], "@element accesses element");
+			equal(el1[0].nodeName.toLowerCase(), "p", "this is the element");
+			equal(ev1.type, "click", "event is the right kind of thing");
+			equal(title, foodTypes[0].title, "Title passed in");
+			equal(hash.content, foodTypes[0].content, "Args with = passed in as a hash");
+			equal(foodType, foodTypes[0], "1st argument after requested arguments is the foodType");
+		}
+
+		frag = template({
+			foodTypes: foodTypes,
+			withArgs: withArgs
+		});
+		ta.appendChild(frag);
+		p0 = ta.getElementsByClassName("with-args")[0];
+		can.trigger(p0, "click");
 	});
 
 	test("can-value input text", function () {
