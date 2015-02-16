@@ -69,6 +69,9 @@ steal('can/util', 'can/view/elements.js', function (can) {
 				// on the node.
 				if (canExpando || node.nodeType !== 3) {
 					++_id;
+					if(_id === 2162) {
+						debugger;
+					}
 					return node[expando] = (node.nodeName ? 'element_' : 'obj_') + _id;
 				} else {
 					// If we didn't find the node, we need to register it and return

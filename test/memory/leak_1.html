@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html>
+<head lang="en">
+    <meta charset="UTF-8">
+    <title>CanJS View Memory Leak Test</title>
+
+    <script type="text/javascript" src='../../node_modules/steal/steal.js'></script>
+    <script type="text/javascript">
+        steal(
+            'jquery',
+            'can/util',
+            'can/view/stache',
+            'can',
+            function($, can) {
+
+
+                var mainArea = $('.main-area');
+                var startTestWithLeakButton = $('.start-test-with-leak-button');
+                var startTestWithoutLeakButton = $('.start-test-without-leak-button');
+
+                var withLeak = true;
+
+                var addViewToDOM = function() {
+                    mainArea.empty();
+
+                    var studentsTemplate = can.mustache(
+                        '<div>{{#each students}}Syllabus ID: {{id}}, name: {{name}}, age: {{age}}, class group: {{classGroup}}<br />{{/each}}</div>'
+                    );
+					var students = new can.List([
+                        {
+                            id: 0,
+                            name: 'John Smith',
+                            age: 15,
+                            classGroup: '7A'
+                        },
+                        {
+                            id: 1,
+                            name: 'Alice Brown',
+                            age: 14,
+                            classGroup: '6B'
+                        },
+                        {
+                            id: 2,
+                            name: 'Bob Green',
+                            age: 15,
+                            classGroup: '7A'
+                        },
+                        {
+                            id: 3,
+                            name: 'Tim Tam',
+                            age: 16,
+                            classGroup: '7B'
+                        }
+                    ]);
+					// make random students
+
+
+                    var output;
+
+                    if (withLeak) {
+                        output = studentsTemplate({
+                            students: students
+                        });
+                    } else {
+                        output = studentsTemplate({
+                            students: students.attr()
+                        });
+                    }
+
+                    mainArea.append(output);
+                    
+                };
+
+                var startTest = function() {
+                    console.log('STARTED TEST');
+
+                    addViewToDOM();
+                    var addViewInterval = setInterval(addViewToDOM, 50);
+                    setTimeout(function() {
+                        clearInterval(addViewInterval);
+                        console.log('FINISHED TEST');
+                        $("body").empty();
+                    }, 60000);
+                };
+
+                startTestWithLeakButton.on('click', function() {
+                    withLeak = true;
+                    startTest();
+                });
+
+                startTestWithoutLeakButton.on('click', function() {
+                    withLeak = false;
+                    startTest();
+                });
+            }
+        );
+    </script>
+</head>
+<body>
+	<input class="start-test-with-leak-button" type="button" value="Start test (with leak)" /> 
+	<input class="start-test-without-leak-button" type="button" value="Start test (without leak)" />
+	<div class="main-area"></div>
+</body>
+</html>
