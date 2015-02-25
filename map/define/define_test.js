@@ -225,15 +225,17 @@ steal("can/map/define", "can/route", "can/test", "steal-qunit", function () {
 
 		var Typer = can.Map.extend({
 			define: {
-				date: {  type: 'date' },
-				string: {type: 'string'},
-				number: {  type: 'number' },
-				'boolean': {  type: 'boolean' },
-				htmlbool: {  type: 'htmlbool' },
-				leaveAlone: {  type: '*' }
+				date: { type: 'date' },
+				string: { type: 'string' },
+				number: { type: 'number' },
+				'boolean': { type: 'boolean' },
+				htmlbool: { type: 'htmlbool' },
+				leaveAlone: { type: '*' },
+				computed: { type: 'compute' }
 			}
 		});
 		var obj = {};
+		var computedVal = can.compute(0);
 
 		var t = new Typer({
 			date: 1395896701516,
@@ -241,7 +243,8 @@ steal("can/map/define", "can/route", "can/test", "steal-qunit", function () {
 			number: '5',
 			'boolean': 'false',
 			htmlbool: "",
-			leaveAlone: obj
+			leaveAlone: obj,
+			computed: computedVal
 		});
 
 		ok(t.attr("date") instanceof Date, "converted to date");
@@ -255,10 +258,17 @@ steal("can/map/define", "can/route", "can/test", "steal-qunit", function () {
 		equal(t.attr("htmlbool"), true, "converted to htmlbool");
 
 		equal(t.attr("leaveAlone"), obj, "left as object");
+
+		equal(t.attr("computed"), 0, "computed value returned");
+
 		t.attr({
-			'number': '15'
+			'number': '15',
+			computed: 1
 		});
-		ok(t.attr("number") === 15, "converted to number");
+
+		equal(t.attr("number"), 15, "converted to number");
+		equal(t.computed, computedVal, 'saved to map as a compute');
+		equal(t.attr("computed"), 1, "compute updated via attr");
 
 	});
 
@@ -684,6 +694,88 @@ steal("can/map/define", "can/route", "can/test", "steal-qunit", function () {
 		ok(nested.attr('test') instanceof Example);
 		ok(nested.attr('examples.one') instanceof Example);
 		ok(nested.attr('examples.two.deep') instanceof Example);
+	});
+
+	test('setting a value of a property with type "compute" triggers change events', function () {
+
+		var handler;
+		var message = 'The change event passed the correct {prop} when set with {method}';
+		var createChangeHandler = function (expectedOldVal, expectedNewVal, method) {
+			return function (ev, newVal, oldVal) {
+				var subs = { prop: 'newVal', method: method };
+				equal(newVal, expectedNewVal, can.sub(message, subs));
+				subs.prop = 'oldVal';
+				equal(oldVal, expectedOldVal, can.sub(message, subs));
+			};
+		};
+
+		var count = 0;
+
+		var ComputableMap = can.Map.extend({
+			define: {
+				computed: {
+					type: 'compute',
+				}
+			},
+			alsoComputed: can.compute(function (newVal) {
+				if (newVal) {
+					count = newVal;
+					return;
+				}
+
+				return count;
+			})
+		});
+
+		var computed = can.compute(0);
+
+		var m1 = new ComputableMap({
+			computed: computed
+		});
+
+		equal(m1.attr('computed'), 0, 'm1 is 1');
+
+		handler = createChangeHandler(0, 1, ".attr('computed', newVal)");
+		m1.bind('alsoComputed', handler);
+		m1.attr('alsoComputed', 1);
+		m1.unbind('alsoComputed', handler);
+
+		handler = createChangeHandler(0, 1, ".attr('computed', newVal)");
+		m1.bind('computed', handler);
+		m1.attr('computed', 1);
+		m1.unbind('computed', handler);
+
+		handler = createChangeHandler(1, 2, "computed()");
+		m1.bind('computed', handler);
+		computed(2);
+		m1.unbind('computed', handler);
+	});
+
+	test('replacing the compute on a property with type "compute"', function () {
+		var compute1 = can.compute(0);
+		var compute2 = can.compute(1);
+
+		var ComputableMap = can.Map.extend({
+			define: {
+				computable: {
+					type: 'compute'
+				}
+			}
+		});
+
+		var m = new ComputableMap();
+
+		m.attr('computable', compute1);
+
+		equal(m.computable, compute1, 'compute1 saved to map');
+
+		equal(m.attr('computable'), 0, 'compute1 readable via .attr()');
+
+		m.attr('computable', compute2);
+
+		equal(m.computable, compute2, 'compute2 saved to map');
+
+		equal(m.attr('computable'), 1, 'compute2 readable via .attr()');
 	});
 
 });
